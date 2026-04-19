@@ -1,0 +1,251 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OrderStatus {
+  PENDING
+  ACCEPTED
+  CANCELED_BY_GUEST
+}
+
+enum BillRequestStatus {
+  PENDING
+  DONE
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+}
+
+enum OfferVisibility {
+  AUTO
+  COUPON
+}
+
+enum OfferStatus {
+  ACTIVE
+  PAUSED
+  EXPIRED
+}
+
+model Platform {
+  id                   Int      @id @default(autoincrement())
+  name                 String
+  super_admin_email    String   @unique
+  super_admin_password String
+}
+
+model Brand {
+  id              Int        @id @default(autoincrement())
+  name            String
+  slug            String     @unique
+  logo_url        String?
+  primary_color   String?
+  secondary_color String?
+  font_style      String?
+  banner_url      String?
+  status          String     @default("ACTIVE")
+  created_at      DateTime   @default(now())
+  admins          Admin[]
+  locations       Location[]
+  menus           Menu[]
+  captains        Captain[]
+}
+
+model Admin {
+  id       Int    @id @default(autoincrement())
+  brand    Brand  @relation(fields: [brand_id], references: [id])
+  brand_id Int
+  email    String @unique
+  password String
+  name     String
+}
+
+model Location {
+  id        Int      @id @default(autoincrement())
+  brand     Brand    @relation(fields: [brand_id], references: [id])
+  brand_id  Int
+  name      String
+  address   String
+  active    Boolean  @default(true)
+  tables    Table[]
+  captains  Captain[]
+  menus     Menu[]
+  orders    Order[]
+  offers    Offer[]
+  billRequests BillRequest[]
+}
+
+model Captain {
+  id          Int      @id @default(autoincrement())
+  brand       Brand    @relation(fields: [brand_id], references: [id])
+  brand_id    Int
+  location    Location @relation(fields: [location_id], references: [id])
+  location_id Int
+  name        String
+  email       String   @unique
+  password    String
+  active      Boolean  @default(true)
+}
+
+model Menu {
+  id          Int        @id @default(autoincrement())
+  brand       Brand      @relation(fields: [brand_id], references: [id])
+  brand_id    Int
+  location    Location?  @relation(fields: [location_id], references: [id])
+  location_id Int?
+  name        String
+  active      Boolean    @default(true)
+  categories  Category[]
+}
+
+model Category {
+  id         Int      @id @default(autoincrement())
+  menu       Menu     @relation(fields: [menu_id], references: [id])
+  menu_id    Int
+  name       Json
+  sort_order Int      @default(0)
+  active     Boolean  @default(true)
+  items      Item[]
+}
+
+model Item {
+  id          Int          @id @default(autoincrement())
+  category    Category     @relation(fields: [category_id], references: [id])
+  category_id Int
+  name        Json
+  description Json
+  price       Float
+  image_url   String?
+  available   Boolean      @default(true)
+  choices     ItemChoice[]
+  addons      ItemAddon[]
+  sizes       ItemSize[]
+  orderItems  OrderItem[]
+}
+
+model ItemChoice {
+  id      Int   @id @default(autoincrement())
+  item    Item  @relation(fields: [item_id], references: [id])
+  item_id Int
+  label   Json
+  options Json
+}
+
+model ItemAddon {
+  id          Int   @id @default(autoincrement())
+  item        Item  @relation(fields: [item_id], references: [id])
+  item_id     Int
+  label       Json
+  extra_price Float
+}
+
+model ItemSize {
+  id      Int   @id @default(autoincrement())
+  item    Item  @relation(fields: [item_id], references: [id])
+  item_id Int
+  label   Json
+  price   Float
+}
+
+model Table {
+  id           Int    @id @default(autoincrement())
+  location     Location @relation(fields: [location_id], references: [id])
+  location_id  Int
+  number       String
+  qr_text      String
+  qr_image_url String?
+  active       Boolean @default(true)
+  orders       Order[]
+  billRequests BillRequest[]
+}
+
+model Order {
+  id                Int             @id @default(autoincrement())
+  location          Location        @relation(fields: [location_id], references: [id])
+  location_id       Int
+  table             Table           @relation(fields: [table_id], references: [id])
+  table_id          Int
+  status            OrderStatus     @default(PENDING)
+  estimated_minutes Int?
+  created_at        DateTime        @default(now())
+  updated_at        DateTime        @updatedAt
+  orderItems        OrderItem[]
+  notes             OrderNote[]
+  guestInfo         GuestInfo?
+  billRequests      BillRequest[]
+}
+
+model OrderItem {
+  id              Int           @id @default(autoincrement())
+  order           Order         @relation(fields: [order_id], references: [id])
+  order_id        Int
+  item            Item          @relation(fields: [item_id], references: [id])
+  item_id         Int
+  quantity        Int
+  selected_choice Json?
+  selected_addons Json?
+  selected_size   Json?
+  unit_price      Float
+  notes           OrderItemNote[]
+}
+
+model OrderItemNote {
+  id           Int       @id @default(autoincrement())
+  order_item   OrderItem @relation(fields: [order_item_id], references: [id])
+  order_item_id Int
+  note         String
+}
+
+model OrderNote {
+  id      Int    @id @default(autoincrement())
+  order   Order  @relation(fields: [order_id], references: [id])
+  order_id Int
+  note    String
+}
+
+model GuestInfo {
+  id       Int    @id @default(autoincrement())
+  order    Order  @relation(fields: [order_id], references: [id])
+  order_id Int    @unique
+  name     String?
+  email    String?
+  phone    String?
+}
+
+model BillRequest {
+  id             Int               @id @default(autoincrement())
+  order          Order             @relation(fields: [order_id], references: [id])
+  order_id       Int
+  table          Table             @relation(fields: [table_id], references: [id])
+  table_id       Int
+  location       Location          @relation(fields: [location_id], references: [id])
+  location_id    Int
+  payment_method PaymentMethod
+  status         BillRequestStatus @default(PENDING)
+  requested_at   DateTime          @default(now())
+  done_at        DateTime?
+}
+
+model Offer {
+  id                 Int             @id @default(autoincrement())
+  location           Location        @relation(fields: [location_id], references: [id])
+  location_id        Int
+  internal_name      String
+  display_label      String
+  type               String
+  settings           Json
+  start_date         DateTime
+  end_date           DateTime
+  active_hours_start String?
+  active_hours_end   String?
+  visibility         OfferVisibility
+  coupon_code        String?
+  status             OfferStatus     @default(ACTIVE)
+}
