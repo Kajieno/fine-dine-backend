@@ -24,6 +24,15 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cors({ origin: process.env.FRONTEND_URL || '*' }));
 
+app.get('/', (req, res) => {
+  res.json({
+    status: "ok",
+    message: "Fine Dine API is running",
+    version: "1.0.0",
+    timestamp: new Date()
+  });
+});
+
 app.use('/api', authRoutes);
 app.use('/api/brand', brandRoutes);
 app.use('/api/locations', locationRoutes);
