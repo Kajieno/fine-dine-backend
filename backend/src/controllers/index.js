@@ -708,3 +708,24 @@ export {
   activateBrand,
   suspendBrand,
 } from './subscription.controller.js';
+
+
+// Re-export section controller functions
+export {
+  listSections,
+  createSection,
+  updateSection,
+  deleteSection,
+  toggleSection,
+  assignTablesToSection,
+} from './section.controller.js';
+
+// Re-export captainSession controller functions
+export {
+  getCaptainSections,
+  startCaptainSession,
+  getActiveSession,
+  endCaptainSession,
+  getCaptainSessionHistory,
+  getCaptainOrders,
+} from './captainSession.controller.js';
