@@ -93,32 +93,32 @@ model Brand {
 }
 
 model Subscription {
-  id             Int                @id @default(autoincrement())
-  brand          Brand              @relation(fields: [brand_id], references: [id])
-  brand_id       Int
-  plan           SubscriptionPlan
-  status         SubscriptionStatus @default(ACTIVE)
-  price_usd      Float
-  starts_at      DateTime
-  expires_at     DateTime
-  branch_count   Int                @default(1)
-  created_at     DateTime           @default(now())
-  payments       PaymobPayment[]
+  id           Int                @id @default(autoincrement())
+  brand        Brand              @relation(fields: [brand_id], references: [id])
+  brand_id     Int
+  plan         SubscriptionPlan
+  status       SubscriptionStatus @default(ACTIVE)
+  price_usd    Float
+  starts_at    DateTime
+  expires_at   DateTime
+  branch_count Int                @default(1)
+  created_at   DateTime           @default(now())
+  payments     PaymobPayment[]
 }
 
 model PaymobPayment {
-  id              Int                  @id @default(autoincrement())
-  brand           Brand                @relation(fields: [brand_id], references: [id])
+  id              Int                 @id @default(autoincrement())
+  brand           Brand               @relation(fields: [brand_id], references: [id])
   brand_id        Int
-  subscription    Subscription?        @relation(fields: [subscription_id], references: [id])
+  subscription    Subscription?       @relation(fields: [subscription_id], references: [id])
   subscription_id Int?
   type            PaymobPaymentType
   amount_usd      Float
   paymob_order_id String?
   paymob_txn_id   String?
-  status          PaymobPaymentStatus  @default(PENDING)
+  status          PaymobPaymentStatus @default(PENDING)
   metadata        Json?
-  created_at      DateTime             @default(now())
+  created_at      DateTime            @default(now())
 }
 
 model Admin {
@@ -131,12 +131,13 @@ model Admin {
 }
 
 model Location {
-  id           Int            @id @default(autoincrement())
-  brand        Brand          @relation(fields: [brand_id], references: [id])
+  id           Int              @id @default(autoincrement())
+  brand        Brand            @relation(fields: [brand_id], references: [id])
   brand_id     Int
   name         String
   address      String
-  active       Boolean        @default(true)
+  active       Boolean          @default(true)
+  sections     Section[]
   tables       Table[]
   captains     Captain[]
   menus        Menu[]
@@ -145,16 +146,38 @@ model Location {
   billRequests BillRequest[]
 }
 
+model Section {
+  id               Int              @id @default(autoincrement())
+  location         Location         @relation(fields: [location_id], references: [id])
+  location_id      Int
+  name             String
+  active           Boolean          @default(true)
+  tables           Table[]
+  captainSessions  CaptainSession[]
+}
+
 model Captain {
-  id          Int      @id @default(autoincrement())
-  brand       Brand    @relation(fields: [brand_id], references: [id])
-  brand_id    Int
-  location    Location @relation(fields: [location_id], references: [id])
-  location_id Int
-  name        String
-  email       String   @unique
-  password    String
-  active      Boolean  @default(true)
+  id              Int              @id @default(autoincrement())
+  brand           Brand            @relation(fields: [brand_id], references: [id])
+  brand_id        Int
+  location        Location         @relation(fields: [location_id], references: [id])
+  location_id     Int
+  name            String
+  email           String           @unique
+  password        String
+  active          Boolean          @default(true)
+  captainSessions CaptainSession[]
+}
+
+model CaptainSession {
+  id         Int       @id @default(autoincrement())
+  captain    Captain   @relation(fields: [captain_id], references: [id])
+  captain_id Int
+  section    Section   @relation(fields: [section_id], references: [id])
+  section_id Int
+  started_at DateTime  @default(now())
+  ended_at   DateTime?
+  active     Boolean   @default(true)
 }
 
 model Menu {
@@ -179,18 +202,18 @@ model Category {
 }
 
 model Item {
-  id           Int          @id @default(autoincrement())
-  category     Category     @relation(fields: [category_id], references: [id])
-  category_id  Int
-  name         Json
-  description  Json
-  price        Float
-  image_url    String?
-  available    Boolean      @default(true)
-  choices      ItemChoice[]
-  addons       ItemAddon[]
-  sizes        ItemSize[]
-  orderItems   OrderItem[]
+  id          Int          @id @default(autoincrement())
+  category    Category     @relation(fields: [category_id], references: [id])
+  category_id Int
+  name        Json
+  description Json
+  price       Float
+  image_url   String?
+  available   Boolean      @default(true)
+  choices     ItemChoice[]
+  addons      ItemAddon[]
+  sizes       ItemSize[]
+  orderItems  OrderItem[]
 }
 
 model ItemChoice {
@@ -221,6 +244,8 @@ model Table {
   id           Int           @id @default(autoincrement())
   location     Location      @relation(fields: [location_id], references: [id])
   location_id  Int
+  section      Section?      @relation(fields: [section_id], references: [id])
+  section_id   Int?
   number       String
   qr_text      String
   qr_image_url String?
@@ -297,18 +322,18 @@ model BillRequest {
 }
 
 model Offer {
-  id                 Int             @id @default(autoincrement())
-  location           Location        @relation(fields: [location_id], references: [id])
-  location_id        Int
-  internal_name      String
-  display_label      String
-  type               String
-  settings           Json
-  start_date         DateTime
-  end_date           DateTime
-  active_hours_start String?
-  active_hours_end   String?
-  visibility         OfferVisibility
-  coupon_code        String?
-  status             OfferStatus     @default(ACTIVE)
+  id                  Int             @id @default(autoincrement())
+  location            Location        @relation(fields: [location_id], references: [id])
+  location_id         Int
+  internal_name       String
+  display_label       String
+  type                String
+  settings            Json
+  start_date          DateTime
+  end_date            DateTime
+  active_hours_start  String?
+  active_hours_end    String?
+  visibility          OfferVisibility
+  coupon_code         String?
+  status              OfferStatus     @default(ACTIVE)
 }
