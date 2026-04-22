@@ -15,6 +15,7 @@ import orderRoutes from './src/routes/order.routes.js';
 import billRoutes from './src/routes/bill.routes.js';
 import analyticsRoutes from './src/routes/analytics.routes.js';
 import publicRoutes from './src/routes/public.routes.js';
+import subscriptionRoutes from './src/routes/subscription.routes.js';
 
 dotenv.config();
 
@@ -45,6 +46,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/bill-request', billRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/menu', publicRoutes);
+app.use('/api/subscription', subscriptionRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Endpoint not found' });
