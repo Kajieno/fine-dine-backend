@@ -695,3 +695,16 @@ export async function analyticsExport(req, res) {
   }
   res.status(400).json({ error: 'format must be csv or excel' });
 }
+
+
+// Re-export subscription controller functions
+export {
+  registerBrand,
+  initiateSubscriptionPayment,
+  paymobWebhook,
+  getSubscriptionStatus,
+  addBranchPayment,
+  listBrands,
+  activateBrand,
+  suspendBrand,
+} from './subscription.controller.js';
