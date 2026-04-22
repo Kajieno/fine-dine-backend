@@ -727,5 +727,16 @@ export {
   getActiveSession,
   endCaptainSession,
   getCaptainSessionHistory,
+
+  // Re-export order controller functions
+export {
+  createOrder,
+  getOrder,
+  listOrders,
+  acceptOrder,
+  cancelOrder,
+  createBillRequest,
+  completeBillRequest,
+} from './order.controller.js';
   getCaptainOrders,
 } from './captainSession.controller.js';
