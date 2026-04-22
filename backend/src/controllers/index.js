@@ -729,10 +729,7 @@ export {
   getCaptainSessionHistory,
     getCaptainOrders,
 } from './captainSession.controller.js';
-
-  // Re-export order controller functions
-export {
-  createOrder,
+    createOrder,
   getOrder,
   listOrders,
   acceptOrder,
