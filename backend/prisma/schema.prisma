@@ -34,28 +34,91 @@ enum OfferStatus {
   EXPIRED
 }
 
+enum BrandStatus {
+  PENDING_PAYMENT
+  ACTIVE
+  SUSPENDED
+  CANCELLED
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+enum SubscriptionPlan {
+  MONTHLY
+  YEARLY
+}
+
+enum PaymobPaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum PaymobPaymentType {
+  SUBSCRIPTION
+  BRANCH
+}
+
 model Platform {
-  id                   Int      @id @default(autoincrement())
+  id                   Int    @id @default(autoincrement())
   name                 String
-  super_admin_email    String   @unique
+  super_admin_email    String @unique
   super_admin_password String
 }
 
 model Brand {
-  id              Int        @id @default(autoincrement())
+  id              Int            @id @default(autoincrement())
   name            String
-  slug            String     @unique
+  slug            String         @unique
   logo_url        String?
   primary_color   String?
   secondary_color String?
   font_style      String?
   banner_url      String?
-  status          String     @default("ACTIVE")
-  created_at      DateTime   @default(now())
+  status          BrandStatus    @default(PENDING_PAYMENT)
+  owner_name      String?
+  owner_email     String?        @unique
+  owner_phone     String?
+  created_at      DateTime       @default(now())
   admins          Admin[]
   locations       Location[]
   menus           Menu[]
   captains        Captain[]
+  subscriptions   Subscription[]
+  payments        PaymobPayment[]
+}
+
+model Subscription {
+  id             Int                @id @default(autoincrement())
+  brand          Brand              @relation(fields: [brand_id], references: [id])
+  brand_id       Int
+  plan           SubscriptionPlan
+  status         SubscriptionStatus @default(ACTIVE)
+  price_usd      Float
+  starts_at      DateTime
+  expires_at     DateTime
+  branch_count   Int                @default(1)
+  created_at     DateTime           @default(now())
+  payments       PaymobPayment[]
+}
+
+model PaymobPayment {
+  id              Int                  @id @default(autoincrement())
+  brand           Brand                @relation(fields: [brand_id], references: [id])
+  brand_id        Int
+  subscription    Subscription?        @relation(fields: [subscription_id], references: [id])
+  subscription_id Int?
+  type            PaymobPaymentType
+  amount_usd      Float
+  paymob_order_id String?
+  paymob_txn_id   String?
+  status          PaymobPaymentStatus  @default(PENDING)
+  metadata        Json?
+  created_at      DateTime             @default(now())
 }
 
 model Admin {
@@ -68,17 +131,17 @@ model Admin {
 }
 
 model Location {
-  id        Int      @id @default(autoincrement())
-  brand     Brand    @relation(fields: [brand_id], references: [id])
-  brand_id  Int
-  name      String
-  address   String
-  active    Boolean  @default(true)
-  tables    Table[]
-  captains  Captain[]
-  menus     Menu[]
-  orders    Order[]
-  offers    Offer[]
+  id           Int            @id @default(autoincrement())
+  brand        Brand          @relation(fields: [brand_id], references: [id])
+  brand_id     Int
+  name         String
+  address      String
+  active       Boolean        @default(true)
+  tables       Table[]
+  captains     Captain[]
+  menus        Menu[]
+  orders       Order[]
+  offers       Offer[]
   billRequests BillRequest[]
 }
 
@@ -106,33 +169,33 @@ model Menu {
 }
 
 model Category {
-  id         Int      @id @default(autoincrement())
-  menu       Menu     @relation(fields: [menu_id], references: [id])
+  id         Int     @id @default(autoincrement())
+  menu       Menu    @relation(fields: [menu_id], references: [id])
   menu_id    Int
   name       Json
-  sort_order Int      @default(0)
-  active     Boolean  @default(true)
+  sort_order Int     @default(0)
+  active     Boolean @default(true)
   items      Item[]
 }
 
 model Item {
-  id          Int          @id @default(autoincrement())
-  category    Category     @relation(fields: [category_id], references: [id])
-  category_id Int
-  name        Json
-  description Json
-  price       Float
-  image_url   String?
-  available   Boolean      @default(true)
-  choices     ItemChoice[]
-  addons      ItemAddon[]
-  sizes       ItemSize[]
-  orderItems  OrderItem[]
+  id           Int          @id @default(autoincrement())
+  category     Category     @relation(fields: [category_id], references: [id])
+  category_id  Int
+  name         Json
+  description  Json
+  price        Float
+  image_url    String?
+  available    Boolean      @default(true)
+  choices      ItemChoice[]
+  addons       ItemAddon[]
+  sizes        ItemSize[]
+  orderItems   OrderItem[]
 }
 
 model ItemChoice {
-  id      Int   @id @default(autoincrement())
-  item    Item  @relation(fields: [item_id], references: [id])
+  id      Int    @id @default(autoincrement())
+  item    Item   @relation(fields: [item_id], references: [id])
   item_id Int
   label   Json
   options Json
@@ -155,27 +218,27 @@ model ItemSize {
 }
 
 model Table {
-  id           Int    @id @default(autoincrement())
-  location     Location @relation(fields: [location_id], references: [id])
+  id           Int           @id @default(autoincrement())
+  location     Location      @relation(fields: [location_id], references: [id])
   location_id  Int
   number       String
   qr_text      String
   qr_image_url String?
-  active       Boolean @default(true)
+  active       Boolean       @default(true)
   orders       Order[]
   billRequests BillRequest[]
 }
 
 model Order {
-  id                Int             @id @default(autoincrement())
-  location          Location        @relation(fields: [location_id], references: [id])
+  id                Int           @id @default(autoincrement())
+  location          Location      @relation(fields: [location_id], references: [id])
   location_id       Int
-  table             Table           @relation(fields: [table_id], references: [id])
+  table             Table         @relation(fields: [table_id], references: [id])
   table_id          Int
-  status            OrderStatus     @default(PENDING)
+  status            OrderStatus   @default(PENDING)
   estimated_minutes Int?
-  created_at        DateTime        @default(now())
-  updated_at        DateTime        @updatedAt
+  created_at        DateTime      @default(now())
+  updated_at        DateTime      @updatedAt
   orderItems        OrderItem[]
   notes             OrderNote[]
   guestInfo         GuestInfo?
@@ -183,10 +246,10 @@ model Order {
 }
 
 model OrderItem {
-  id              Int           @id @default(autoincrement())
-  order           Order         @relation(fields: [order_id], references: [id])
+  id              Int             @id @default(autoincrement())
+  order           Order           @relation(fields: [order_id], references: [id])
   order_id        Int
-  item            Item          @relation(fields: [item_id], references: [id])
+  item            Item            @relation(fields: [item_id], references: [id])
   item_id         Int
   quantity        Int
   selected_choice Json?
@@ -197,23 +260,23 @@ model OrderItem {
 }
 
 model OrderItemNote {
-  id           Int       @id @default(autoincrement())
-  order_item   OrderItem @relation(fields: [order_item_id], references: [id])
+  id            Int       @id @default(autoincrement())
+  order_item    OrderItem @relation(fields: [order_item_id], references: [id])
   order_item_id Int
-  note         String
+  note          String
 }
 
 model OrderNote {
-  id      Int    @id @default(autoincrement())
-  order   Order  @relation(fields: [order_id], references: [id])
+  id       Int    @id @default(autoincrement())
+  order    Order  @relation(fields: [order_id], references: [id])
   order_id Int
-  note    String
+  note     String
 }
 
 model GuestInfo {
-  id       Int    @id @default(autoincrement())
-  order    Order  @relation(fields: [order_id], references: [id])
-  order_id Int    @unique
+  id       Int     @id @default(autoincrement())
+  order    Order   @relation(fields: [order_id], references: [id])
+  order_id Int     @unique
   name     String?
   email    String?
   phone    String?
