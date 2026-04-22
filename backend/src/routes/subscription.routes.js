@@ -9,7 +9,7 @@ import {
   activateBrand,
   suspendBrand,
 } from '../controllers/index.js';
-import { authSuperAdmin } from '../middleware/auth.js';
+import { authenticateToken, requireAdmin } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
 
@@ -19,20 +19,20 @@ router.post('/register', registerBrand);
 // Public - Paymob webhook callback
 router.post('/paymob/webhook', paymobWebhook);
 
-// Protected - initiate payment after registration
+// Public - initiate payment after registration
 router.post('/initiate-payment', initiateSubscriptionPayment);
 
-// Protected - get subscription status for a brand
-router.get('/status/:brandId', authSuperAdmin, getSubscriptionStatus);
+// Public - get subscription status for a brand
+router.get('/status/:brandId', getSubscriptionStatus);
 
-// Protected - add branch (charges $29 via Paymob)
+// Public - add branch (charges $29 via Paymob)
 router.post('/add-branch/:brandId', addBranchPayment);
 
 // Super Admin - list all brands
-router.get('/brands', authSuperAdmin, listBrands);
+router.get('/brands', authenticateToken, requireAdmin, listBrands);
 
 // Super Admin - activate/suspend brand
-router.patch('/brands/:brandId/activate', authSuperAdmin, activateBrand);
-router.patch('/brands/:brandId/suspend', authSuperAdmin, suspendBrand);
+router.patch('/brands/:brandId/activate', authenticateToken, requireAdmin, activateBrand);
+router.patch('/brands/:brandId/suspend', authenticateToken, requireAdmin, suspendBrand);
 
 export default router;
