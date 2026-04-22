@@ -1,5 +1,4 @@
 import prisma from '../lib/prisma.js';
-import axios from 'axios';
 
 const PAYMOB_API_KEY = process.env.PAYMOB_API_KEY;
 const PAYMOB_INTEGRATION_ID = process.env.PAYMOB_INTEGRATION_ID;
@@ -9,26 +8,38 @@ async function getExchangeRate() {
   return parseFloat(process.env.PAYMOB_USD_TO_EGP_RATE || '50');
 }
 
+async function postJson(url, body) {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Paymob API error ${res.status}: ${text}`);
+  }
+  return res.json();
+}
+
 async function paymobAuthToken() {
-  const res = await axios.post('https://accept.paymob.com/api/auth/tokens', {
+  const data = await postJson('https://accept.paymob.com/api/auth/tokens', {
     api_key: PAYMOB_API_KEY,
   });
-  return res.data.token;
+  return data.token;
 }
 
 async function createPaymobOrder(authToken, amountCents) {
-  const res = await axios.post('https://accept.paymob.com/api/ecommerce/orders', {
+  return postJson('https://accept.paymob.com/api/ecommerce/orders', {
     auth_token: authToken,
     delivery_needed: false,
     amount_cents: amountCents,
     currency: 'EGP',
     items: [],
   });
-  return res.data;
 }
 
 async function createPaymentKey(authToken, amountCents, orderId, billingData) {
-  const res = await axios.post('https://accept.paymob.com/api/acceptance/payment_keys', {
+  const data = await postJson('https://accept.paymob.com/api/acceptance/payment_keys', {
     auth_token: authToken,
     amount_cents: amountCents,
     expiration: 3600,
@@ -37,7 +48,7 @@ async function createPaymentKey(authToken, amountCents, orderId, billingData) {
     currency: 'EGP',
     integration_id: parseInt(PAYMOB_INTEGRATION_ID),
   });
-  return res.data.token;
+  return data.token;
 }
 
 function buildBillingData(brand) {
