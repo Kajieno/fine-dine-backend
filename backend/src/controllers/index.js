@@ -727,6 +727,8 @@ export {
   getActiveSession,
   endCaptainSession,
   getCaptainSessionHistory,
+    getCaptainOrders,
+} from './captainSession.controller.js';
 
   // Re-export order controller functions
 export {
