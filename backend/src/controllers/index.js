@@ -672,6 +672,83 @@ export async function completeBillRequest(req, res) {
   } catch (err) { console.error('completeBillRequest:', err); return res.status(500).json({ error: 'Internal error' }); }
 }
 
+export async function updateOrder(req, res) {
+  try {
+    const id = Number(req.params.id);
+    const { items, notes, guest_info } = req.body;
+    const order = await prisma.order.findUnique({ where: { id }, include: { orderItems: true } });
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+    if (order.status !== 'PENDING') return res.status(400).json({ error: 'Only PENDING orders can be updated' });
+    
+    await prisma.$transaction(async (tx) => {
+      if (items) {
+        await tx.orderItem.deleteMany({ where: { order_id: id } });
+        const itemIds = items.map(i => Number(i.item_id));
+        const dbItems = await tx.item.findMany({ where: { id: { in: itemIds } } });
+        const priceMap = Object.fromEntries(dbItems.map(i => [i.id, i.price]));
+        await tx.orderItem.createMany({
+          data: items.map(i => ({
+            order_id: id,
+            item_id: Number(i.item_id),
+            quantity: Number(i.quantity),
+            unit_price: priceMap[Number(i.item_id)],
+            selected_choice: i.selected_choice ?? null,
+            selected_addons: i.selected_addons ?? null,
+            selected_size: i.selected_size ?? null
+          }))
+        });
+      }
+      if (notes) {
+        await tx.orderNote.deleteMany({ where: { order_id: id } });
+        if (notes.length) await tx.orderNote.createMany({ data: notes.map(n => ({ order_id: id, note: n })) });
+      }
+      if (guest_info) {
+        await tx.guestInfo.upsert({
+          where: { order_id: id },
+          create: { order_id: id, ...guest_info },
+          update: guest_info
+        });
+      }
+    });
+    
+    const updated = await prisma.order.findUnique({ where: { id }, include: orderInclude });
+    emitLocation(order.location_id, 'order_updated', { order_id: id });
+    return res.json({ success: true, order: updated });
+  } catch (err) {
+    console.error('updateOrder:', err);
+    return res.status(500).json({ error: 'Internal error' });
+  }
+}
+
+export async function markBillDone(req, res) {
+  try {
+    const id = Number(req.params.id);
+    const billRequest = await prisma.billRequest.findUnique({ where: { id }, include: { order: true } });
+    if (!billRequest) return res.status(404).json({ error: 'Bill request not found' });
+    const updated = await prisma.billRequest.update({ where: { id }, data: { status: 'DONE' } });
+    emitOrder(billRequest.order_id, 'bill_done', { bill_request_id: id });
+    return res.json({ success: true, billRequest: updated });
+  } catch (err) {
+    console.error('markBillDone:', err);
+    return res.status(500).json({ error: 'Internal error' });
+  }
+}
+
+export async function listBillRequests(req, res) {
+  try {
+    const { location_id, status } = req.query;
+    if (!location_id) return res.status(400).json({ error: 'location_id required' });
+    const where = { location_id: Number(location_id) };
+    if (status) where.status = status;
+    const billRequests = await prisma.billRequest.findMany({ where, include: { order: true, table: true }, orderBy: { requested_at: 'desc' } });
+    return res.json({ billRequests });
+  } catch (err) {
+    console.error('listBillRequests:', err);
+    return res.status(500).json({ error: 'Internal error' });
+  }
+}
+
+
 // Re-export captainSession controller functions
 export {
   getCaptainSections,
